@@ -17,7 +17,7 @@ interface CreateProjectInput {
 export async function createProject(input: CreateProjectInput) {
   const existing = findChannelByMmId(input.mmChannelId);
   if (existing) {
-    return { alreadyExists: true, channel: existing };
+    return { alreadyExists: true as const, channel: existing };
   }
 
   // 1. Create Trello Board
@@ -63,7 +63,7 @@ export async function createProject(input: CreateProjectInput) {
   }
 
   return {
-    alreadyExists: false,
+    alreadyExists: false as const,
     collection,
     projectPage,
     trelloBoard: board,

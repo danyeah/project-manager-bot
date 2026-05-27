@@ -12,7 +12,7 @@ interface UserAddedCtx {
 }
 
 export async function handleUserAdded(event: WsEvent, ctx: UserAddedCtx) {
-  const { client, outlineClient, logger, botUserId } = ctx;
+  const { client, logger, botUserId } = ctx;
 
   if (event.data.user_id !== botUserId) return;
 
@@ -28,7 +28,6 @@ export async function handleUserAdded(event: WsEvent, ctx: UserAddedCtx) {
       mmChannelName: channel.name,
       displayName: channel.display_name || channel.name,
       botUserId,
-      outlineClient,
     });
 
     if (result.alreadyExists) {
