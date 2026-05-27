@@ -20,8 +20,14 @@ export async function handleUserAdded(event: WsEvent, ctx: UserAddedCtx) {
     const channel = await client.getChannel(channelId);
     logger.info({ channel: channel.name }, 'bot_added_to_channel');
 
-    // Avvia il questionario interattivo invece di creare subito il progetto
-    startOnboarding(channelId, client, botUserId);
+    // Avvia il questionario con i dati reali del canale
+    startOnboarding(
+      channel.id,
+      channel.name,
+      channel.display_name || channel.name,
+      client,
+      botUserId
+    );
 
   } catch (err) {
     logger.error({ err, channelId }, 'user_added_failed');

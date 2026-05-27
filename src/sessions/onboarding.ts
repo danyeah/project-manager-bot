@@ -4,6 +4,8 @@ import { logger } from '../logger.js';
 
 interface OnboardingSession {
   channelId: string;
+  channelName: string;
+  displayName: string;
   step: number;
   data: {
     clientName?: string;
@@ -20,16 +22,24 @@ const QUESTIONS = [
   "Chi fa parte del **team**? (nomi o ruoli)"
 ];
 
-export function startOnboarding(channelId: string, client: MattermostClient, botUserId: string) {
+export function startOnboarding(
+  channelId: string,
+  channelName: string,
+  displayName: string,
+  client: MattermostClient,
+  botUserId: string
+) {
   sessions.set(channelId, {
     channelId,
+    channelName,
+    displayName,
     step: 0,
     data: {}
   });
 
   client.createPost({
     channel_id: channelId,
-    message: "👋 Ciao! Iniziamo la configurazione del progetto.\n\nRispondi alle domande una alla volta."
+    message: `👋 Ciao! Iniziamo la configurazione del progetto **${displayName}**.\n\nRispondi alle domande una alla volta.`
   });
 
   askNextQuestion(channelId, client);
@@ -51,14 +61,28 @@ function askNextQuestion(channelId: string, client: MattermostClient) {
   });
 }
 
-export async function handleOnboardingReply(channelId: string, message: string, client: MattermostClient, botUserId: string) {
+export async function handleOnboardingReply(
+  channelId: string,
+  message: string,
+  userId: string,
+  client: MattermostClient,
+  botUserId: string
+) {
   const session = sessions.get(channelId);
   if (!session) return;
 
+  // Ignora messaggi del bot stesso
+  if (userId === botUserId) return;
+
+  // Ignora messaggi di sistema o troppo corti
+  const cleanMessage = message.trim();
+  if (cleanMessage.length < 2) return;
+  if (cleanMessage.includes('added to the channel')) return;
+
   // Salva la risposta
-  if (session.step === 0) session.data.clientName = message.trim();
-  if (session.step === 1) session.data.deadline = message.trim();
-  if (session.step === 2) session.data.team = message.trim();
+  if (session.step === 0) session.data.clientName = cleanMessage;
+  if (session.step === 1) session.data.deadline = cleanMessage;
+  if (session.step === 2) session.data.team = cleanMessage;
 
   session.step++;
 
@@ -83,15 +107,15 @@ async function finishOnboarding(channelId: string, client: MattermostClient, bot
   try {
     const result = await createProject({
       mmChannelId: channelId,
-      mmChannelName: channelId, // TODO: recuperare il nome reale
-      displayName: channelId,
+      mmChannelName: session.channelName,
+      displayName: session.displayName,
       clientName: session.data.clientName,
       deadline: session.data.deadline,
       team: session.data.team,
       botUserId: botUserId || '',
     });
 
-    const msg = `🎉 Progetto creato!\n- Collection: ${result.collection!.url}\n- Board Trello: ${result.trelloBoard!.url}`;
+    const msg = `🎉 Progetto creato!\n- Collection: ${result.collection.url}\n- Board Trello: ${result.trelloBoard.url}`;
     await client.createPost({ channel_id: channelId, message: msg });
 
   } catch (err) {

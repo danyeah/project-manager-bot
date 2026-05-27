@@ -22,13 +22,14 @@ async function main() {
       try {
         const post = JSON.parse(event.data.post);
         const channelId = post.channel_id;
-        const message = post.message?.trim();
+        const message = post.message;
+        const userId = post.user_id;
 
         // Ignora i messaggi del bot stesso
-        if (post.user_id === botUserId) return;
+        if (userId === botUserId) return;
 
         // Gestisce le risposte al questionario
-        handleOnboardingReply(channelId, message, client, botUserId);
+        handleOnboardingReply(channelId, message, userId, client, botUserId);
       } catch (e) {
         // ignora post malformati
       }
