@@ -10,10 +10,10 @@ export async function handleFathomLink(
   message: string,
   client: MattermostClient
 ) {
-  const recordingId = extractFathomRecordingId(message);
-  if (!recordingId) return;
+  const callId = extractFathomRecordingId(message);
+  if (!callId) return;
 
-  logger.info({ recordingId, channelId }, 'fathom_link_detected');
+  logger.info({ callId, channelId }, 'fathom_link_detected');
 
   const project = findChannelByMmId(channelId);
   if (!project) {
@@ -34,10 +34,27 @@ export async function handleFathomLink(
 
   await client.createPost({
     channel_id: channelId,
-    message: `📥 Sto recuperando il summary e il transcript della call Fathom...`,
+    message: `📥 Sto cercando la registrazione Fathom...`,
   });
 
   try {
+    // 1. Risolvi il vero recording_id dal call_id
+    const recordingId = await fathomClient.findRecordingIdByCallId(callId);
+
+    if (!recordingId) {
+      await client.createPost({
+        channel_id: channelId,
+        message: `❌ Non sono riuscito a trovare la registrazione per questa call (ID: ${callId}).`,
+      });
+      return;
+    }
+
+    await client.createPost({
+      channel_id: channelId,
+      message: `📥 Recuperando summary e transcript della registrazione...`,
+    });
+
+    // 2. Recupera summary + transcript
     const [summaryData, transcriptData] = await Promise.all([
       fathomClient.getSummary(recordingId),
       fathomClient.getTranscript(recordingId),
@@ -50,7 +67,8 @@ export async function handleFathomLink(
 
     const content = `# ${title}
 
-**Fathom Recording ID:** \`${recordingId}\`
+**Fathom Call ID:** \`${callId}\`  
+**Recording ID:** \`${recordingId}\`
 
 ---
 
@@ -78,7 +96,7 @@ ${transcriptMarkdown}
     });
 
   } catch (err: any) {
-    logger.error({ err, recordingId }, 'fathom_processing_failed');
+    logger.error({ err, callId }, 'fathom_processing_failed');
     await client.createPost({
       channel_id: channelId,
       message: `❌ Errore durante il recupero della call Fathom: ${err.message}`,
