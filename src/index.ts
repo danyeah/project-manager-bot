@@ -10,11 +10,7 @@ async function main() {
 
   const client = new MattermostClient(config.MM_URL, config.MM_BOT_TOKEN, logger);
 
-  let botUserId = config.MM_BOT_USER_ID;
-  if (!botUserId) {
-    const me = await client.me();
-    botUserId = me.id;
-  }
+  const botUserId: string = config.MM_BOT_USER_ID || (await client.me()).id;
 
   function dispatch(event: any) {
     if (event.event === 'user_added') {
