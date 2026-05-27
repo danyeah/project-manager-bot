@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { config } from '../config.js';
+import { config } from '../../config.js';
 
 export interface ChannelRow {
   mm_channel_id: string;
