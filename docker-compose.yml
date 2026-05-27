@@ -1,0 +1,27 @@
+services:
+  pm-bot:
+    build: .
+    pull_policy: build
+    image: project-manager-bot:latest
+    container_name: pm-bot
+    restart: unless-stopped
+    networks:
+      - pm-network
+    env_file: ./.env
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/data/pm-bot.db || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+networks:
+  pm-network:
+    external: true
+    name: pm-network
