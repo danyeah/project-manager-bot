@@ -16,10 +16,9 @@ interface FathomTranscript {
   segments: FathomTranscriptSegment[];
 }
 
-interface FathomMeeting {
-  id: string;
-  recording_id?: string;
-  call_id?: string;
+interface FathomMeetingItem {
+  url: string;
+  recording_id: number;
   share_url?: string;
   title?: string;
 }
@@ -43,7 +42,7 @@ export class FathomClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'X-Api-Key': this.apiKey,
+        'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
     });
@@ -63,25 +62,22 @@ export class FathomClient {
   async findRecordingIdByCallId(callId: string): Promise<string | null> {
     try {
       const data = await this.request('/meetings', {
-        limit: '50',
+        limit: '100',
       });
 
-      const meetings: FathomMeeting[] = data.meetings || data.data || [];
+      const items: FathomMeetingItem[] = data.items || [];
 
-      // Cerca un meeting che matcha il call_id o lo share_url
-      const match = meetings.find(m => 
-        m.call_id === callId || 
-        m.share_url?.includes(callId) ||
-        m.id === callId
+      // Cerca un meeting che matcha l'URL della call
+      const match = items.find(item => 
+        item.url?.includes(`/calls/${callId}`) ||
+        item.share_url?.includes(callId)
       );
 
       if (match && match.recording_id) {
-        return match.recording_id;
+        return String(match.recording_id);
       }
 
-      // Se non troviamo nulla, proviamo a cercare per share_url
-      const urlMatch = meetings.find(m => m.share_url?.includes(callId));
-      return urlMatch?.recording_id || null;
+      return null;
 
     } catch (err) {
       logger.error({ err, callId }, 'findRecordingIdByCallId failed');
