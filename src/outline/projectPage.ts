@@ -1,7 +1,7 @@
 import { OutlineClient } from './client.js';
 import { config } from '../config.js';
 
-interface OutlinePage {
+export interface OutlinePage {
   id: string;
   title: string;
   url: string;

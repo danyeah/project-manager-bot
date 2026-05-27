@@ -1,13 +1,13 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
-interface OutlineCollection {
+export interface OutlineCollection {
   id: string;
   name: string;
   url: string;
 }
 
-interface OutlineDocument {
+export interface OutlineDocument {
   id: string;
   title: string;
   url: string;

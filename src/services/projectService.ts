@@ -1,8 +1,9 @@
 import { trelloClient } from '../trello/client.js';
-import { outlineClient } from '../outline/client.js';
-import { createProjectPage } from '../outline/projectPage.js';
+import { outlineClient, type OutlineCollection } from '../outline/client.js';
+import { createProjectPage, type OutlinePage } from '../outline/projectPage.js';
 import { updateProjectsDashboard } from '../outline/dashboard.js';
-import { insertChannel, findChannelByMmId } from '../db/repositories/channels.js';
+import { insertChannel, findChannelByMmId, type ChannelRow } from '../db/repositories/channels.js';
+import type { TrelloBoard } from '../trello/client.js';
 
 interface CreateProjectInput {
   mmChannelId: string;
@@ -14,7 +15,16 @@ interface CreateProjectInput {
   botUserId: string;
 }
 
-export async function createProject(input: CreateProjectInput) {
+export type CreateProjectResult =
+  | { alreadyExists: true; channel: ChannelRow }
+  | {
+      alreadyExists: false;
+      collection: OutlineCollection;
+      projectPage: OutlinePage;
+      trelloBoard: TrelloBoard;
+    };
+
+export async function createProject(input: CreateProjectInput): Promise<CreateProjectResult> {
   const existing = findChannelByMmId(input.mmChannelId);
   if (existing) {
     return { alreadyExists: true, channel: existing };
