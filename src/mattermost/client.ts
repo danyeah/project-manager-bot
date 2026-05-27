@@ -1,22 +1,62 @@
-export class MattermostClient {
-  constructor(private url: string, private token: string, private logger: any) {}
-
-  async getChannel(channelId: string) {
-    // Placeholder - implement real call
-    return { id: channelId, name: 'test', display_name: 'Test Channel', team_id: 'team' };
-  }
-
-  async createPost(data: any) {
-    this.logger.info({ data }, 'create_post');
-    // Placeholder
-  }
-
-  async me() {
-    return { id: 'bot-id', username: 'pm-bot' };
-  }
-
-  async getMyTeams() {
-    return [{ id: 'team1', name: 'main' }];
-  }
+export interface MmUser {
+  id: string;
+  username: string;
 }
 
+export interface MmChannel {
+  id: string;
+  name: string;
+  display_name: string;
+  team_id: string;
+  type: string;
+}
+
+export interface CreatePostInput {
+  channel_id: string;
+  message: string;
+  root_id?: string;
+}
+
+export class MattermostClient {
+  private readonly baseUrl: string;
+  private readonly token: string;
+  private readonly logger: any;
+
+  constructor(baseUrl: string, token: string, logger: any) {
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.token = token;
+    this.logger = logger;
+  }
+
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const url = `${this.baseUrl}/api/v4${path}`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      this.logger.error({ status: res.status, path, body: text }, 'mm_request_failed');
+      throw new Error(`Mattermost ${method} ${path} -> ${res.status}: ${text}`);
+    }
+
+    return res.json() as Promise<T>;
+  }
+
+  me(): Promise<MmUser> {
+    return this.request<MmUser>('GET', '/users/me');
+  }
+
+  getChannel(channelId: string): Promise<MmChannel> {
+    return this.request<MmChannel>('GET', `/channels/${channelId}`);
+  }
+
+  createPost(input: CreatePostInput): Promise<unknown> {
+    return this.request('POST', '/posts', input);
+  }
+}
