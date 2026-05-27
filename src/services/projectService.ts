@@ -26,7 +26,10 @@ export type CreateProjectResult =
 
 export async function createProject(input: CreateProjectInput): Promise<CreateProjectResult> {
   const existing = findChannelByMmId(input.mmChannelId);
-  if (existing) {
+  // A row owned by the kb-bot has only outline_collection_id; the pm-bot
+  // pipeline is "done" only once it has set the Trello board. Otherwise we
+  // need to complete the row by running the rest of the flow.
+  if (existing && existing.trello_board_id) {
     return { alreadyExists: true, channel: existing };
   }
 
