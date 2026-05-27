@@ -28,12 +28,23 @@ export function getAllActiveChannels(): ChannelRow[] {
 }
 
 export function insertChannel(row: Omit<ChannelRow, 'created_at' | 'updated_at'>): void {
+  // Upsert: rows pre-existing from kb-bot have only outline_collection_id +
+  // created_by_user_id; the pm-bot completes them with its own fields.
   const stmt = db.prepare(`
     INSERT INTO channels (
-      mm_channel_id, mm_channel_name, outline_collection_id, 
-      outline_page_id, trello_board_id, status, deadline, 
+      mm_channel_id, mm_channel_name, outline_collection_id,
+      outline_page_id, trello_board_id, status, deadline,
       client_name, created_by_user_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(mm_channel_id) DO UPDATE SET
+      mm_channel_name       = excluded.mm_channel_name,
+      outline_collection_id = excluded.outline_collection_id,
+      outline_page_id       = excluded.outline_page_id,
+      trello_board_id       = excluded.trello_board_id,
+      status                = excluded.status,
+      deadline              = excluded.deadline,
+      client_name           = excluded.client_name,
+      updated_at            = datetime('now')
   `);
   stmt.run(
     row.mm_channel_id,
