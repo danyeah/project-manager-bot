@@ -9,7 +9,7 @@ interface FathomSummary {
 interface FathomTranscriptSegment {
   speaker_name: string;
   text: string;
-  timestamp: number;
+  timestamp: number; // seconds
 }
 
 interface FathomTranscript {
@@ -56,9 +56,6 @@ export class FathomClient {
     return response.json();
   }
 
-  /**
-   * Cerca un meeting usando il call_id dall'URL e restituisce il recording_id
-   */
   async findRecordingIdByCallId(callId: string): Promise<string | null> {
     try {
       const data = await this.request('/meetings', {
@@ -67,7 +64,6 @@ export class FathomClient {
 
       const items: FathomMeetingItem[] = data.items || [];
 
-      // Cerca un meeting che matcha l'URL della call
       const match = items.find(item => 
         item.url?.includes(`/calls/${callId}`) ||
         item.share_url?.includes(callId)
@@ -87,17 +83,36 @@ export class FathomClient {
 
   async getSummary(recordingId: string): Promise<FathomSummary> {
     const data = await this.request(`/recordings/${recordingId}/summary`);
+    
     return {
-      summary: data.summary || '',
+      summary: data.summary?.markdown_formatted || '',
       title: data.title,
     };
   }
 
   async getTranscript(recordingId: string): Promise<FathomTranscript> {
     const data = await this.request(`/recordings/${recordingId}/transcript`);
-    return {
-      segments: data.segments || [],
-    };
+    
+    const segments = (data.transcript || []).map((item: any) => {
+      // Converte "00:05:32" in secondi
+      let seconds = 0;
+      if (item.timestamp) {
+        const parts = item.timestamp.split(':').map(Number);
+        if (parts.length === 3) {
+          seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+          seconds = parts[0] * 60 + parts[1];
+        }
+      }
+
+      return {
+        speaker_name: item.speaker?.display_name || 'Speaker',
+        text: item.text || '',
+        timestamp: seconds,
+      };
+    });
+
+    return { segments };
   }
 }
 
