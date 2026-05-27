@@ -58,6 +58,45 @@ export class OutlineClient {
     };
   }
 
+  async listCollections(): Promise<OutlineCollection[]> {
+    const data = await this.request('/collections.list', {
+      limit: 100,
+    });
+
+    return data.data.map((col: any) => ({
+      id: col.id,
+      name: col.name,
+      url: `${this.baseUrl}/collection/${col.urlId || col.id}`,
+    }));
+  }
+
+  async findCollectionByName(name: string): Promise<OutlineCollection | null> {
+    const collections = await this.listCollections();
+    return collections.find(c => c.name.toLowerCase() === name.toLowerCase()) || null;
+  }
+
+  /**
+   * Tries to create a collection. If it already exists, returns the existing one.
+   */
+  async getOrCreateCollection(name: string, description?: string): Promise<OutlineCollection> {
+    try {
+      return await this.createCollection(name, description);
+    } catch (error: any) {
+      if (error.message.includes('already exists') || 
+          error.message.includes('unique') || 
+          error.message.includes('409')) {
+        
+        logger.info({ name }, 'Collection already exists, searching for existing one');
+        const existing = await this.findCollectionByName(name);
+        
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
+  }
+
   async createDocument(params: {
     collectionId: string;
     title: string;

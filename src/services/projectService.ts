@@ -17,7 +17,7 @@ interface CreateProjectInput {
 export async function createProject(input: CreateProjectInput) {
   const existing = findChannelByMmId(input.mmChannelId);
   if (existing) {
-    return { alreadyExists: true as const, channel: existing };
+    return { alreadyExists: true, channel: existing };
   }
 
   // 1. Create Trello Board
@@ -26,8 +26,8 @@ export async function createProject(input: CreateProjectInput) {
     `Progetto: ${input.displayName}`
   );
 
-  // 2. Create Outline Collection
-  const collection = await outlineClient.createCollection(
+  // 2. Create or reuse Outline Collection (handles duplicate names)
+  const collection = await outlineClient.getOrCreateCollection(
     input.displayName,
     `Knowledge base for #${input.mmChannelName}`
   );
@@ -58,12 +58,11 @@ export async function createProject(input: CreateProjectInput) {
   try {
     await updateProjectsDashboard(outlineClient);
   } catch (err) {
-    // Non bloccare la creazione del progetto se l'aggiornamento dashboard fallisce
     console.error('Dashboard update failed:', err);
   }
 
   return {
-    alreadyExists: false as const,
+    alreadyExists: false,
     collection,
     projectPage,
     trelloBoard: board,
