@@ -4,6 +4,7 @@ import { MattermostClient } from './mattermost/client.js';
 import { MattermostWebSocket } from './mattermost/websocket.js';
 import { handleUserAdded } from './mattermost/handlers/userAdded.js';
 import { handleOnboardingReply } from './sessions/onboarding.js';
+import { handleFathomLink } from './handlers/fathomHandler.js';
 import { outlineClient } from './outline/client.js';
 
 async function main() {
@@ -22,16 +23,21 @@ async function main() {
       try {
         const post = JSON.parse(event.data.post);
         const channelId = post.channel_id;
-        const message = post.message;
+        const message = post.message || '';
         const userId = post.user_id;
 
-        // Ignora i messaggi del bot stesso
         if (userId === botUserId) return;
 
-        // Gestisce le risposte al questionario
+        // Fathom link detection
+        if (message.includes('fathom.video/calls/')) {
+          handleFathomLink(channelId, message, client);
+          return;
+        }
+
+        // Onboarding questionnaire replies
         handleOnboardingReply(channelId, message, userId, client, botUserId);
       } catch (e) {
-        // ignora post malformati
+        // ignore malformed posts
       }
     }
   }

@@ -7,6 +7,7 @@ export interface Config {
   OUTLINE_API_TOKEN: string;
   TRELLO_API_KEY: string;
   TRELLO_API_TOKEN: string;
+  FATHOM_API_KEY: string;
   DB_PATH: string;
   CLEANUP_INTERVAL_MINUTES: number;
 }
@@ -20,7 +21,7 @@ export const config: Config = {
   OUTLINE_API_TOKEN: process.env.OUTLINE_API_TOKEN || '',
   TRELLO_API_KEY: process.env.TRELLO_API_KEY || '',
   TRELLO_API_TOKEN: process.env.TRELLO_API_TOKEN || '',
+  FATHOM_API_KEY: process.env.FATHOM_API_KEY || '',
   DB_PATH: process.env.DB_PATH || './data/projects.db',
   CLEANUP_INTERVAL_MINUTES: parseInt(process.env.CLEANUP_INTERVAL_MINUTES || '60'),
 };
-
