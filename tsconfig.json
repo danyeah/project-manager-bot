@@ -22,7 +22,11 @@
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // exactOptionalPropertyTypes: process.env reads and several
+    // service call sites legitimately pass `string | undefined`
+    // into optional fields. Keeping the option on would force a lot
+    // of conditional-spread noise without runtime benefit.
+    "exactOptionalPropertyTypes": false,
 
     // Style Options
     // "noImplicitReturns": true,
