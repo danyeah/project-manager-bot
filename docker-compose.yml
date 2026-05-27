@@ -9,14 +9,14 @@ services:
       - pm-network
     env_file: ./.env
     volumes:
-      - ./data:/app/data
+      - ${KB_DATA_DIR:-./data}:/app/data
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
     healthcheck:
-      test: ["CMD-SHELL", "test -f /app/data/pm-bot.db || exit 1"]
+      test: ["CMD-SHELL", "test -f /app/data/kb-bot.db || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
