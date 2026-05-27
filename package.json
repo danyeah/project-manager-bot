@@ -1,0 +1,21 @@
+{
+  "name": "project-manager-bot",
+  "version": "0.1.0",
+  "description": "Project Manager Bot for Mattermost + Outline + Trello",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.7.4"
+  }
+}
