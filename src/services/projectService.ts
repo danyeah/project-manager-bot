@@ -39,6 +39,7 @@ export async function createProject(input: CreateProjectInput) {
     deadline: input.deadline,
     team: input.team,
     status: 'On Track',
+    trelloBoardUrl: board.url,
   });
 
   // 4. Save to database
