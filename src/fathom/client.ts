@@ -42,7 +42,7 @@ export class FathomClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        'X-Api-Key': this.apiKey,
         'Content-Type': 'application/json',
       },
     });
