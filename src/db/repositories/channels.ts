@@ -1,5 +1,4 @@
-import Database from 'better-sqlite3';
-import { config } from '../../config.js';
+import { db } from '../index.js';
 
 export interface ChannelRow {
   mm_channel_id: string;
@@ -14,8 +13,6 @@ export interface ChannelRow {
   updated_at?: string;
   created_by_user_id: string;
 }
-
-const db = new Database(config.DB_PATH);
 
 export function findChannelByMmId(mmChannelId: string): ChannelRow | null {
   const stmt = db.prepare('SELECT * FROM channels WHERE mm_channel_id = ?');
