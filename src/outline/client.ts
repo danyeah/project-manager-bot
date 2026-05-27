@@ -75,9 +75,6 @@ export class OutlineClient {
     return collections.find(c => c.name.toLowerCase() === name.toLowerCase()) || null;
   }
 
-  /**
-   * Tries to create a collection. If it already exists, returns the existing one.
-   */
   async getOrCreateCollection(name: string, description?: string): Promise<OutlineCollection> {
     try {
       return await this.createCollection(name, description);
@@ -132,6 +129,38 @@ export class OutlineClient {
       title: data.data.title,
       url: `${this.baseUrl}/doc/${data.data.urlId || data.data.id}`,
     };
+  }
+
+  /**
+   * Cerca un documento per titolo (scansiona le prime collection)
+   */
+  async findDocumentByTitle(title: string): Promise<OutlineDocument | null> {
+    try {
+      const collections = await this.listCollections();
+      
+      for (const collection of collections.slice(0, 20)) {
+        const data = await this.request('/documents.list', {
+          collectionId: collection.id,
+          limit: 50,
+        });
+
+        const found = data.data.find((doc: any) => 
+          doc.title.toLowerCase() === title.toLowerCase()
+        );
+
+        if (found) {
+          return {
+            id: found.id,
+            title: found.title,
+            url: `${this.baseUrl}/doc/${found.urlId || found.id}`,
+          };
+        }
+      }
+    } catch (err) {
+      logger.warn({ err }, 'findDocumentByTitle failed');
+    }
+
+    return null;
   }
 }
 

@@ -46,17 +46,29 @@ export async function updateProjectsDashboard(outlineClient: OutlineClient, dash
 `;
 
   try {
-    if (dashboardPageId) {
-      // Update existing page
-      await outlineClient.updateDocument(dashboardPageId, {
+    let pageIdToUpdate = dashboardPageId;
+
+    // Se non abbiamo l'ID, cerchiamo se la pagina esiste già
+    if (!pageIdToUpdate) {
+      const existing = await outlineClient.findDocumentByTitle(DASHBOARD_TITLE);
+      if (existing) {
+        pageIdToUpdate = existing.id;
+      }
+    }
+
+    if (pageIdToUpdate) {
+      // Aggiorna la pagina esistente
+      await outlineClient.updateDocument(pageIdToUpdate, {
         text: content,
         title: DASHBOARD_TITLE,
       });
-      logger.info({ pageId: dashboardPageId }, 'dashboard_updated');
+      logger.info({ pageId: pageIdToUpdate }, 'dashboard_updated');
     } else {
-      // Create new collection + page if not exists
-      // For simplicity we create it in a dedicated collection or root
-      const collection = await outlineClient.createCollection('Project Register', 'Registro centrale dei progetti attivi');
+      // Prima volta: crea collection + pagina
+      const collection = await outlineClient.createCollection(
+        'Project Register', 
+        'Registro centrale dei progetti attivi'
+      );
       
       const doc = await outlineClient.createDocument({
         collectionId: collection.id,
