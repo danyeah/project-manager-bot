@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 
-interface TrelloBoard {
+export interface TrelloBoard {
   id: string;
   name: string;
   url: string;
