@@ -115,7 +115,7 @@ async function finishOnboarding(channelId: string, client: MattermostClient, bot
       botUserId: botUserId || '',
     });
 
-    const msg = `🎉 Progetto creato!\n- Collection: ${result.collection.url}\n- Board Trello: ${result.trelloBoard.url}`;
+    const msg = `🎉 Progetto creato!\n- Collection: ${result.collection!.url}\n- Board Trello: ${result.trelloBoard!.url}`;
     await client.createPost({ channel_id: channelId, message: msg });
 
   } catch (err) {
