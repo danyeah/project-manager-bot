@@ -3,6 +3,7 @@ import { logger } from './logger.js';
 import { MattermostClient } from './mattermost/client.js';
 import { MattermostWebSocket } from './mattermost/websocket.js';
 import { handleUserAdded } from './mattermost/handlers/userAdded.js';
+import { handleOnboardingReply } from './sessions/onboarding.js';
 import { outlineClient } from './outline/client.js';
 
 async function main() {
@@ -14,7 +15,23 @@ async function main() {
 
   function dispatch(event: any) {
     if (event.event === 'user_added') {
-      handleUserAdded(event, { client, outlineClient, logger, botUserId });
+      handleUserAdded(event, { client, logger, botUserId });
+    }
+
+    if (event.event === 'posted') {
+      try {
+        const post = JSON.parse(event.data.post);
+        const channelId = post.channel_id;
+        const message = post.message?.trim();
+
+        // Ignora i messaggi del bot stesso
+        if (post.user_id === botUserId) return;
+
+        // Gestisce le risposte al questionario
+        handleOnboardingReply(channelId, message, client, botUserId);
+      } catch (e) {
+        // ignora post malformati
+      }
     }
   }
 

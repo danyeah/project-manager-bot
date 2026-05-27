@@ -1,12 +1,10 @@
 import type { WsEvent } from '../websocket.js';
 import type { MattermostClient } from '../client.js';
-import type { OutlineClient } from '../../outline/client.js';
-import { createProject } from '../../services/projectService.js';
-import { config } from '../../config.js';
+import { startOnboarding } from '../../sessions/onboarding.js';
+import { logger } from '../../logger.js';
 
 interface UserAddedCtx {
   client: MattermostClient;
-  outlineClient: OutlineClient;
   logger: any;
   botUserId: string;
 }
@@ -20,33 +18,12 @@ export async function handleUserAdded(event: WsEvent, ctx: UserAddedCtx) {
 
   try {
     const channel = await client.getChannel(channelId);
-    
     logger.info({ channel: channel.name }, 'bot_added_to_channel');
 
-    const result = await createProject({
-      mmChannelId: channel.id,
-      mmChannelName: channel.name,
-      displayName: channel.display_name || channel.name,
-      botUserId,
-    });
-
-    if (result.alreadyExists) {
-      await client.createPost({
-        channel_id: channelId,
-        message: '👋 Progetto già configurato.',
-      });
-      return;
-    }
-
-    const msg = `👋 Progetto creato!\n- Collection: ${result.collection.url}\n- Board Trello: ${result.trelloBoard.url}`;
-    
-    await client.createPost({
-      channel_id: channelId,
-      message: msg,
-    });
+    // Avvia il questionario interattivo invece di creare subito il progetto
+    startOnboarding(channelId, client, botUserId);
 
   } catch (err) {
     logger.error({ err, channelId }, 'user_added_failed');
   }
 }
-
