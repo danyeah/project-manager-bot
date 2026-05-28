@@ -21,6 +21,19 @@ interface FathomMeetingItem {
   recording_id: number;
   share_url?: string;
   title?: string;
+  meeting_title?: string;
+  recording_start_time?: string;
+  recorded_by?: {
+    name: string;
+    email: string;
+  };
+  calendar_invitees?: Array<{
+    name: string;
+    email: string;
+  }>;
+  default_summary?: {
+    markdown_formatted?: string;
+  };
 }
 
 export class FathomClient {
@@ -60,12 +73,13 @@ export class FathomClient {
     try {
       const data = await this.request('/meetings', {
         limit: '100',
+        include_summary: 'true',
       });
 
       const items: FathomMeetingItem[] = data.items || [];
 
       const match = items.find(item => 
-        item.url?.includes(`/calls/${callId}`) ||
+        item.url?.includes(`/calls/${callId}`) || 
         item.share_url?.includes(callId)
       );
 
@@ -74,9 +88,25 @@ export class FathomClient {
       }
 
       return null;
-
     } catch (err) {
       logger.error({ err, callId }, 'findRecordingIdByCallId failed');
+      return null;
+    }
+  }
+
+  async getMeeting(recordingId: string): Promise<FathomMeetingItem | null> {
+    try {
+      const data = await this.request('/meetings', {
+        limit: '100',
+        include_summary: 'true',
+      });
+
+      const items: FathomMeetingItem[] = data.items || [];
+      const match = items.find(item => String(item.recording_id) === String(recordingId));
+
+      return match || null;
+    } catch (err) {
+      logger.error({ err, recordingId }, 'getMeeting failed');
       return null;
     }
   }

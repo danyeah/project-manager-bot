@@ -1,5 +1,5 @@
 import { fathomClient } from '../fathom/client.js';
-import { extractFathomRecordingId, formatTranscript, getTodayDate } from '../fathom/utils.js';
+import { extractFathomRecordingId, getTodayDate } from '../fathom/utils.js';
 import { findChannelByMmId } from '../db/repositories/channels.js';
 import { outlineClient } from '../outline/client.js';
 import { MattermostClient } from '../mattermost/client.js';
@@ -51,36 +51,53 @@ export async function handleFathomLink(
 
     await client.createPost({
       channel_id: channelId,
-      message: `📥 Recuperando summary e transcript della registrazione...`,
+      message: `📥 Recuperando dettagli della call...`,
     });
 
-    // 2. Recupera summary + transcript
-    const [summaryData, transcriptData] = await Promise.all([
-      fathomClient.getSummary(recordingId),
-      fathomClient.getTranscript(recordingId),
-    ]);
+    // 2. Recupera i dettagli completi della meeting (include summary)
+    const meeting = await fathomClient.getMeeting(recordingId);
 
-    const date = getTodayDate();
-    const title = `Call ${date}`;
+    if (!meeting) {
+      await client.createPost({
+        channel_id: channelId,
+        message: `❌ Non sono riuscito a recuperare i dettagli della call.`,
+      });
+      return;
+    }
 
-    const transcriptMarkdown = formatTranscript(transcriptData.segments);
+    const title = meeting.meeting_title || `Call ${getTodayDate()}`;
+    const date = meeting.recording_start_time 
+      ? new Date(meeting.recording_start_time).toLocaleDateString('it-IT')
+      : getTodayDate();
+
+    // Costruisci la sezione partecipanti
+    const participants = (meeting.calendar_invitees || [])
+      .map(p => `- **${p.name}** – [${p.email}](mailto:${p.email})`)
+      .join('\n');
+
+    const recordedBy = meeting.recorded_by 
+      ? `[${meeting.recorded_by.name}](mailto:${meeting.recorded_by.email})`
+      : 'Sconosciuto';
+
+    const summary = meeting.default_summary?.markdown_formatted || '_Nessun summary disponibile_';
 
     const content = `# ${title}
 
-**Fathom Call ID:** \`${callId}\`  
-**Recording ID:** \`${recordingId}\`
+**Data:** ${date}  
+**Registrata da:** ${recordedBy}  
+**Link Fathom:** [Apri su Fathom](${meeting.url})
 
 ---
 
-## Summary
+### Partecipanti
 
-${summaryData.summary || '_Nessun summary disponibile_'}
+${participants || '_Nessun partecipante_'}
 
 ---
 
-## Transcript
+### Riassunto
 
-${transcriptMarkdown}
+${summary}
 `;
 
     const doc = await outlineClient.createDocument({
@@ -94,7 +111,6 @@ ${transcriptMarkdown}
       channel_id: channelId,
       message: `✅ Pagina creata: [${title}](${doc.url})`,
     });
-
   } catch (err: any) {
     logger.error({ err, callId }, 'fathom_processing_failed');
     await client.createPost({
