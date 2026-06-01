@@ -9,6 +9,7 @@ export interface ChannelRow {
   status?: string;
   deadline?: string;
   client_name?: string;
+  is_active?: boolean;
   created_at: string;
   updated_at?: string;
   created_by_user_id: string;
@@ -28,8 +29,6 @@ export function getAllActiveChannels(): ChannelRow[] {
 }
 
 export function insertChannel(row: Omit<ChannelRow, 'created_at' | 'updated_at'>): void {
-  // Upsert: rows pre-existing from kb-bot have only outline_collection_id +
-  // created_by_user_id; the pm-bot completes them with its own fields.
   const stmt = db.prepare(`
     INSERT INTO channels (
       mm_channel_id, mm_channel_name, outline_collection_id,
@@ -66,4 +65,13 @@ export function updateChannelStatus(mmChannelId: string, status: string): void {
     WHERE mm_channel_id = ?
   `);
   stmt.run(status, mmChannelId);
+}
+
+export function updateChannelIsActive(mmChannelId: string, isActive: boolean): void {
+  const stmt = db.prepare(`
+    UPDATE channels 
+    SET is_active = ?, updated_at = datetime('now')
+    WHERE mm_channel_id = ?
+  `);
+  stmt.run(isActive ? 1 : 0, mmChannelId);
 }

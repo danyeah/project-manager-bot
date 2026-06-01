@@ -18,6 +18,7 @@ const requiredCols: Array<[string, string]> = [
   ['status', 'TEXT'],
   ['deadline', 'TEXT'],
   ['client_name', 'TEXT'],
+  ['is_active', 'INTEGER'],
   ['updated_at', 'TEXT'],
 ];
 
