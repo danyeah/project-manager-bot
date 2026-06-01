@@ -6,6 +6,7 @@ import { handleUserAdded } from './mattermost/handlers/userAdded.js';
 import { handleOnboardingReply } from './sessions/onboarding.js';
 import { handleFathomLink } from './handlers/fathomHandler.js';
 import { outlineClient } from './outline/client.js';
+import { startScheduler } from './jobs/scheduler.js';
 
 async function main() {
   logger.info({ mm_url: config.MM_URL }, 'project-manager-bot starting');
@@ -47,10 +48,14 @@ async function main() {
     token: config.MM_BOT_TOKEN,
     logger,
     dispatch,
+    botUserId,
   });
 
   ws.connect();
   logger.info('bot_ready');
+
+  // Start the hourly status updater cron
+  startScheduler();
 }
 
 main().catch((err) => {
