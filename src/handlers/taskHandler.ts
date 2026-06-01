@@ -13,9 +13,11 @@ export function parseTaskCommand(message: string): ParsedTaskCommand | null {
   const match = message.match(regex);
   if (!match) return null;
 
-  const rest = match[1].trim();
+  const rest = (match[1] ?? '').trim();
   const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
-  const mentions = [...rest.matchAll(mentionRegex)].map(m => m[1]);
+  const mentions: string[] = [...rest.matchAll(mentionRegex)]
+    .map(m => m[1])
+    .filter((x): x is string => x !== undefined);
 
   // Remove mentions from the text to get the title
   let title = rest.replace(mentionRegex, '').trim();
@@ -50,8 +52,10 @@ export async function handleTaskCommand(
   try {
     // 1. Get current board members
     const boardMembers = await trelloClient.getBoardMembers(boardId);
-    const memberEmailMap = new Map(
-      boardMembers.map((m: any) => [m.username?.toLowerCase(), m.id])
+    const memberEmailMap = new Map<string, string>(
+      boardMembers
+        .map((m: any) => [m.username?.toLowerCase(), m.id] as [string | undefined, string])
+        .filter((entry: [string | undefined, string]): entry is [string, string] => entry[0] !== undefined)
     );
 
     for (const username of parsed.assignees) {

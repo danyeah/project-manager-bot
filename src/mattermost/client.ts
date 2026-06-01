@@ -4,6 +4,9 @@ import { logger } from '../logger.js';
 export interface MmUser {
   id: string;
   username: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface MmChannel {
@@ -57,6 +60,10 @@ export class MattermostClient {
 
   getChannel(channelId: string): Promise<MmChannel> {
     return this.request<MmChannel>('GET', `/channels/${channelId}`);
+  }
+
+  getUserByUsername(username: string): Promise<MmUser> {
+    return this.request<MmUser>('GET', `/users/username/${encodeURIComponent(username)}`);
   }
 
   createPost(input: CreatePostInput): Promise<unknown> {
