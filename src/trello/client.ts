@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 export interface TrelloBoard {
   id: string;
@@ -28,18 +29,38 @@ export class TrelloClient {
   }
 
   async createBoard(name: string, description?: string): Promise<TrelloBoard> {
+    if (!name || name.trim().length === 0) {
+      throw new Error('Board name is required');
+    }
+
     const params = new URLSearchParams({
-      name,
-      desc: description || '',
+      name: name.trim(),
+      desc: description?.trim() || '',
       defaultLists: 'true',
     });
 
     const url = `${this.baseUrl}/boards?${params.toString()}&${this.getAuthParams()}`;
+
+    logger.info({ name, url: url.split('?')[0] }, 'creating_trello_board');
+
     const response = await fetch(url, { method: 'POST' });
+
     if (!response.ok) {
-      throw new Error(`Failed to create Trello board: ${response.statusText}`);
+      const errorBody = await response.text().catch(() => 'No body');
+      logger.error({
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+        name,
+      }, 'trello_create_board_failed');
+
+      throw new Error(`Failed to create Trello board: ${response.status} ${response.statusText}`);
     }
-    return response.json();
+
+    const board = await response.json();
+    logger.info({ boardId: board.id, name: board.name }, 'trello_board_created');
+
+    return board;
   }
 
   async getBoardLists(boardId: string) {
@@ -97,7 +118,6 @@ export class TrelloClient {
     let list = lists.find((l: any) => l.name.toLowerCase() === listName.toLowerCase());
 
     if (!list) {
-      // Create the list if it doesn't exist
       const params = new URLSearchParams({ name: listName, idBoard: boardId });
       const url = `${this.baseUrl}/lists?${params.toString()}&${this.getAuthParams()}`;
       const response = await fetch(url, { method: 'POST' });
