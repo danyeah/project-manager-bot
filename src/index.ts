@@ -7,6 +7,7 @@ import { handleOnboardingReply } from './sessions/onboarding.js';
 import { handleFathomLink } from './handlers/fathomHandler.js';
 import { outlineClient } from './outline/client.js';
 import { startScheduler } from './jobs/scheduler.js';
+import { handleTaskCommand } from './handlers/taskHandler.js';
 
 async function main() {
   logger.info({ mm_url: config.MM_URL }, 'project-manager-bot starting');
@@ -32,6 +33,12 @@ async function main() {
         // Fathom link detection
         if (message.includes('fathom.video/calls/')) {
           handleFathomLink(channelId, message, client);
+          return;
+        }
+
+        // Task creation command
+        if (message.includes('@pm-bot task')) {
+          handleTaskCommand(channelId, message, client, botUserId);
           return;
         }
 
