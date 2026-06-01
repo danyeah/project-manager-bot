@@ -48,7 +48,6 @@ async function main() {
     token: config.MM_BOT_TOKEN,
     logger,
     dispatch,
-    botUserId,
   });
 
   ws.connect();

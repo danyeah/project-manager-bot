@@ -1,3 +1,6 @@
+import { config } from '../config.js';
+import { logger } from '../logger.js';
+
 export interface MmUser {
   id: string;
   username: string;
@@ -59,4 +62,14 @@ export class MattermostClient {
   createPost(input: CreatePostInput): Promise<unknown> {
     return this.request('POST', '/posts', input);
   }
+
+  postMessage(channelId: string, message: string): Promise<unknown> {
+    return this.createPost({ channel_id: channelId, message });
+  }
 }
+
+export const mattermostClient = new MattermostClient(
+  config.MM_URL,
+  config.MM_BOT_TOKEN,
+  logger,
+);
