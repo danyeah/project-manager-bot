@@ -1,5 +1,5 @@
 import { MattermostClient } from '../mattermost/client.js';
-import { trelloClient } from '../trello/client.js';
+import { planeClient } from '../plane/client.js';
 import { findChannelByMmId } from '../db/repositories/channels.js';
 import { logger } from '../logger.js';
 
@@ -19,8 +19,7 @@ export function parseTaskCommand(message: string): ParsedTaskCommand | null {
     .map(m => m[1])
     .filter((x): x is string => x !== undefined);
 
-  // Remove mentions from the text to get the title
-  let title = rest.replace(mentionRegex, '').trim();
+  const title = rest.replace(mentionRegex, '').trim();
 
   return {
     assignees: mentions,
@@ -41,75 +40,61 @@ export async function handleTaskCommand(
   }
 
   const channel = findChannelByMmId(channelId);
-  if (!channel?.trello_board_id) {
-    await client.postMessage(channelId, 'Questo canale non ha ancora una board Trello associata.');
+  if (!channel?.plane_project_id) {
+    await client.postMessage(channelId, 'Questo canale non ha ancora un progetto Plane associato.');
     return;
   }
 
-  const boardId = channel.trello_board_id;
+  const projectId = channel.plane_project_id;
   const assignedMemberIds: string[] = [];
 
   try {
-    // 1. Get current board members
-    const boardMembers = await trelloClient.getBoardMembers(boardId);
-    const memberEmailMap = new Map<string, string>(
-      boardMembers
-        .map((m: any) => [m.username?.toLowerCase(), m.id] as [string | undefined, string])
-        .filter((entry: [string | undefined, string]): entry is [string, string] => entry[0] !== undefined)
-    );
+    // 1. Fetch all workspace members once
+    const workspaceMembers = await planeClient.getWorkspaceMembers();
+    const memberByEmail = new Map(workspaceMembers.map(m => [m.email, m]));
 
     for (const username of parsed.assignees) {
-      // 2. Get email from Mattermost
+      // 2. Resolve Mattermost username → email
       const mmUser = await client.getUserByUsername(username);
       if (!mmUser?.email) {
-        await client.postMessage(channelId, `Non riesco a trovare l'utente @${username} su Mattermost.`);
+        await client.postMessage(channelId, `Non riesco a trovare @${username} su Mattermost.`);
         continue;
       }
 
-      // 3. Check if already on board
-      let trelloMemberId = memberEmailMap.get(username.toLowerCase());
+      const email = mmUser.email.toLowerCase();
+      const workspaceMember = memberByEmail.get(email);
 
-      if (!trelloMemberId) {
-        // 4. Add to board using email
-        try {
-          const newMember = await trelloClient.addMemberToBoardByEmail(boardId, mmUser.email);
-          trelloMemberId = newMember.id;
-          logger.info({ username, email: mmUser.email }, 'member_added_to_board');
-        } catch (err) {
-          logger.error({ err, username }, 'failed_to_add_member');
-          await client.postMessage(channelId, `Non sono riuscito ad aggiungere @${username} alla board Trello.`);
-          continue;
-        }
+      if (!workspaceMember) {
+        await client.postMessage(
+          channelId,
+          `@${username} non è ancora membro del workspace Plane. Invitalo prima da ${process.env.PLANE_URL}.`
+        );
+        continue;
       }
 
-      if (trelloMemberId) {
-        assignedMemberIds.push(trelloMemberId);
+      // 3. Ensure they are a member of this project
+      try {
+        await planeClient.addMemberToProject(projectId, workspaceMember.memberId);
+      } catch (err) {
+        logger.warn({ err, username }, 'failed_to_add_member_to_project');
       }
+
+      assignedMemberIds.push(workspaceMember.memberId);
     }
 
-    // 5. Find or create "To Do" list
-    const todoList = await trelloClient.findOrCreateList(boardId, 'To Do');
+    // 4. Create the issue
+    const issue = await planeClient.createIssue(projectId, parsed.title, assignedMemberIds);
 
-    // 6. Create the card
-    const card = await trelloClient.createCard(todoList.id, parsed.title);
-
-    // 7. Assign members
-    for (const memberId of assignedMemberIds) {
-      await trelloClient.addMemberToCard(card.id, memberId);
-    }
-
-    // 8. Reply with link
-    const link = card.url || `https://trello.com/c/${card.id}`;
-    await client.postMessage(channelId, `✅ Task creato: [${parsed.title}](${link})`);
+    await client.postMessage(channelId, `✅ Issue creata: [${parsed.title}](${issue.url})`);
 
     logger.info({
       channel: channel.mm_channel_name,
       title: parsed.title,
       assignees: parsed.assignees,
-    }, 'task_created');
+    }, 'issue_created');
 
   } catch (err) {
-    logger.error({ err }, 'task_creation_failed');
-    await client.postMessage(channelId, 'Si è verificato un errore durante la creazione del task.');
+    logger.error({ err }, 'issue_creation_failed');
+    await client.postMessage(channelId, 'Si è verificato un errore durante la creazione dell\'issue.');
   }
 }

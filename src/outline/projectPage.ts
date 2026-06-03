@@ -16,21 +16,21 @@ export async function createProjectPage(
     deadline?: string;
     team?: string;
     status?: string;
-    trelloBoardUrl?: string;
+    planeBoardUrl?: string;
   }
 ): Promise<OutlinePage> {
   const title = `Scheda Progetto - ${projectData.name}`;
 
-  const trelloLink = projectData.trelloBoardUrl 
-    ? `[Apri Board](${projectData.trelloBoardUrl})` 
+  const planeLink = projectData.planeBoardUrl
+    ? `[Apri Progetto](${projectData.planeBoardUrl})`
     : '-';
 
   const content = `# ${title}
 
 ## Informazioni generali
 - **Cliente**: ${projectData.client || '-'}
-- **Canale Mattermost**: 
-- **Board Trello**: ${trelloLink}
+- **Canale Mattermost**:
+- **Progetto Plane**: ${planeLink}
 - **Repository**: 
 - **Data inizio**: 
 - **Deadline principale**: ${projectData.deadline || '-'}

@@ -6,6 +6,7 @@ export interface ChannelRow {
   outline_collection_id: string;
   outline_page_id?: string;
   trello_board_id?: string;
+  plane_project_id?: string;
   status?: string;
   deadline?: string;
   client_name?: string;
@@ -32,14 +33,15 @@ export function insertChannel(row: Omit<ChannelRow, 'created_at' | 'updated_at'>
   const stmt = db.prepare(`
     INSERT INTO channels (
       mm_channel_id, mm_channel_name, outline_collection_id,
-      outline_page_id, trello_board_id, status, deadline,
+      outline_page_id, trello_board_id, plane_project_id, status, deadline,
       client_name, created_by_user_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(mm_channel_id) DO UPDATE SET
       mm_channel_name       = excluded.mm_channel_name,
       outline_collection_id = excluded.outline_collection_id,
       outline_page_id       = excluded.outline_page_id,
       trello_board_id       = excluded.trello_board_id,
+      plane_project_id      = excluded.plane_project_id,
       status                = excluded.status,
       deadline              = excluded.deadline,
       client_name           = excluded.client_name,
@@ -51,6 +53,7 @@ export function insertChannel(row: Omit<ChannelRow, 'created_at' | 'updated_at'>
     row.outline_collection_id,
     row.outline_page_id ?? null,
     row.trello_board_id ?? null,
+    row.plane_project_id ?? null,
     row.status ?? null,
     row.deadline ?? null,
     row.client_name ?? null,

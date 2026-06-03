@@ -1,9 +1,8 @@
-import { trelloClient } from '../trello/client.js';
+import { planeClient, type PlaneProject } from '../plane/client.js';
 import { outlineClient, type OutlineCollection } from '../outline/client.js';
 import { createProjectPage, type OutlinePage } from '../outline/projectPage.js';
 import { updateProjectsDashboard } from '../outline/dashboard.js';
 import { insertChannel, findChannelByMmId, type ChannelRow } from '../db/repositories/channels.js';
-import type { TrelloBoard } from '../trello/client.js';
 
 interface CreateProjectInput {
   mmChannelId: string;
@@ -21,25 +20,22 @@ export type CreateProjectResult =
       alreadyExists: false;
       collection: OutlineCollection;
       projectPage: OutlinePage;
-      trelloBoard: TrelloBoard;
+      planeProject: PlaneProject;
     };
 
 export async function createProject(input: CreateProjectInput): Promise<CreateProjectResult> {
   const existing = findChannelByMmId(input.mmChannelId);
-  // A row owned by the kb-bot has only outline_collection_id; the pm-bot
-  // pipeline is "done" only once it has set the Trello board. Otherwise we
-  // need to complete the row by running the rest of the flow.
-  if (existing && existing.trello_board_id) {
+  if (existing && existing.plane_project_id) {
     return { alreadyExists: true, channel: existing };
   }
 
-  // 1. Create Trello Board
-  const board = await trelloClient.createBoard(
+  // 1. Create Plane Project
+  const planeProject = await planeClient.createProject(
     input.displayName,
     `Progetto: ${input.displayName}`
   );
 
-  // 2. Create or reuse Outline Collection (handles duplicate names)
+  // 2. Create or reuse Outline Collection
   const collection = await outlineClient.getOrCreateCollection(
     input.displayName,
     `Knowledge base for #${input.mmChannelName}`
@@ -52,7 +48,7 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
     deadline: input.deadline,
     team: input.team,
     status: 'On Track',
-    trelloBoardUrl: board.url,
+    planeBoardUrl: planeProject.url,
   });
 
   // 4. Save to database
@@ -61,7 +57,7 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
     mm_channel_name: input.mmChannelName,
     outline_collection_id: collection.id,
     outline_page_id: projectPage.id,
-    trello_board_id: board.id,
+    plane_project_id: planeProject.id,
     status: 'On Track',
     deadline: input.deadline,
     client_name: input.clientName,
@@ -79,6 +75,6 @@ export async function createProject(input: CreateProjectInput): Promise<CreatePr
     alreadyExists: false,
     collection,
     projectPage,
-    trelloBoard: board,
+    planeProject,
   };
 }

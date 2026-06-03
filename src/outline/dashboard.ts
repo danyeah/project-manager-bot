@@ -12,8 +12,8 @@ export async function updateProjectsDashboard(outlineClient: OutlineClient, dash
 
 *Dashboard aggiornata automaticamente dal Project Manager Bot*
 
-| Progetto | Cliente | Stato | Deadline | Collection | Trello |
-|----------|---------|-------|----------|------------|--------|
+| Progetto | Cliente | Stato | Deadline | Collection | Plane |
+|----------|---------|-------|----------|------------|-------|
 `;
 
   if (projects.length === 0) {
@@ -26,11 +26,11 @@ export async function updateProjectsDashboard(outlineClient: OutlineClient, dash
       const collectionUrl = p.outline_collection_id 
         ? `[Apri](${config.OUTLINE_URL}/collection/${p.outline_collection_id})` 
         : '-';
-      const trelloUrl = p.trello_board_id 
-        ? `[Board](https://trello.com/b/${p.trello_board_id})` 
+      const planeUrl = p.plane_project_id
+        ? `[Progetto](${config.PLANE_URL}/${config.PLANE_WORKSPACE_SLUG}/projects/${p.plane_project_id}/issues/)`
         : '-';
 
-      content += `| ${p.mm_channel_name} | ${client} | ${status} | ${deadline} | ${collectionUrl} | ${trelloUrl} |\n`;
+      content += `| ${p.mm_channel_name} | ${client} | ${status} | ${deadline} | ${collectionUrl} | ${planeUrl} |\n`;
     }
   }
 

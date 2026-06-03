@@ -15,6 +15,7 @@ const existingCols = new Set(
 const requiredCols: Array<[string, string]> = [
   ['outline_page_id', 'TEXT'],
   ['trello_board_id', 'TEXT'],
+  ['plane_project_id', 'TEXT'],
   ['status', 'TEXT'],
   ['deadline', 'TEXT'],
   ['client_name', 'TEXT'],
