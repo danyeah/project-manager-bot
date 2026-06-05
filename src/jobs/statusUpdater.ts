@@ -17,7 +17,7 @@ export async function runStatusUpdater() {
     try {
       const hasActive = await planeClient.hasActiveIssues(channel.plane_project_id);
       const isActive = hasActive || (channel as any).is_manually_activated === true;
-      const previousStatus = channel.is_active ?? false;
+      const previousStatus = !!channel.is_active;
 
       if (isActive !== previousStatus) {
         updateChannelIsActive(channel.mm_channel_id, isActive);
